@@ -1,23 +1,17 @@
-﻿{
-    "name":  "DeliverSense",
-    "url":  "https://deliversense.com",
-    "description":  "",
-    "industry":  "",
-    "hasContactForm":  true,
-    "expectedNavItems":  [
-
-                         ],
-    "viewports":  [
-                      "desktop",
-                      "mobile",
-                      "tablet"
-                  ],
-    "skipVisual":  false,
-    "skipForms":  false,
-    "auth":  {
-                 "required":  false,
-                 "loginUrl":  "",
-                 "username":  "",
-                 "password":  ""
-             }
+{
+  "name": "DeliverSense",
+  "url": "https://deliversense.com",
+  "description": "Automates third-party delivery partner reconciliation for restaurants, eliminating manual errors and recovering lost revenue from DoorDash, Uber Eats, and GrubHub disputes.",
+  "industry": "Restaurant Technology / B2B SaaS",
+  "hasContactForm": true,
+  "expectedNavItems": [],
+  "viewports": ["desktop", "mobile", "tablet"],
+  "skipVisual": false,
+  "skipForms": false,
+  "auth": {
+    "required": false,
+    "loginUrl": "",
+    "username": "",
+    "password": ""
+  }
 }

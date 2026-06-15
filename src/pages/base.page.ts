@@ -7,7 +7,7 @@
  */
 
 import { type Page, type Locator } from '@playwright/test';
-import type { SiteConfig } from '@types/site-config.types';
+import type { SiteConfig } from '@app-types/site-config.types';
 
 export class BasePage {
   readonly page: Page;
