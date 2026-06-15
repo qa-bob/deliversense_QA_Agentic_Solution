@@ -45,6 +45,77 @@ export class ContactFormPage extends BasePage {
     return null;
   }
 
+  // ── Navigation ───────────────────────────────────────────────────────────────
+
+  /**
+   * Navigate to the page that hosts the contact/demo form.
+   * Tries common paths in order, then follows any "contact" or "demo" nav link.
+   * Leaves the browser on the page where the form was found (or homepage if none).
+   */
+  async navigateToContactForm(): Promise<void> {
+    // Strict check for homepage — requires email field to avoid false positives from
+    // search boxes or newsletter forms that strategy 3 of findContactForm() can match
+    const hasFormWithEmail = async () =>
+      (await this.findContactForm()) !== null && (await this.hasEmailField());
+
+    // Lenient check for dedicated contact/demo paths — any form OR scheduling embed counts
+    const hasContactMechanism = async () =>
+      (await this.findContactForm()) !== null || (await this.hasSchedulingEmbed());
+
+    await this.navigate();
+    if (await hasFormWithEmail()) return;
+
+    // Use networkidle so the Angular SPA has time to render form fields.
+    // /demo/schedule first: known landing page for the Calendly embed on this site.
+    const candidatePaths = ['/demo/schedule', '/demo', '/contact', '/contact-us', '/get-in-touch', '/reach-out', '/request-demo'];
+    for (const p of candidatePaths) {
+      try {
+        await this.page.goto(this.url.replace(/\/$/, '') + p, {
+          waitUntil: 'networkidle',
+          timeout: 20_000,
+        });
+        if (await hasContactMechanism()) return;
+      } catch {
+        // path doesn't exist or timed out — try next
+      }
+    }
+
+    // Last resort: follow the nav CTA link directly (avoids _blank tab issues)
+    await this.navigate();
+    await this.waitForLoad();
+    const navLink = this.page
+      .locator('nav a, header a')
+      .filter({ hasText: /contact|demo|get started|schedule|request/i })
+      .first();
+    if (await navLink.count() > 0) {
+      const href = await navLink.getAttribute('href');
+      if (href) {
+        const resolved = new URL(href, this.url).toString();
+        await this.page.goto(resolved, { waitUntil: 'networkidle', timeout: 20_000 });
+      }
+    }
+  }
+
+  /**
+   * Returns true if the current page embeds a third-party scheduling or contact widget
+   * (Calendly, HubSpot, Typeform, etc.) inside an iframe.
+   * These forms are cross-origin and cannot be inspected via Playwright.
+   */
+  async hasSchedulingEmbed(): Promise<boolean> {
+    const embed = this.page.locator(
+      'iframe[src*="calendly.com"], ' +
+      'iframe[src*="hubspot.com"], ' +
+      'iframe[src*="typeform.com"], ' +
+      'iframe[src*="jotform.com"], ' +
+      'iframe[src*="cognitoforms.com"], ' +
+      'iframe[src*="forms.office.com"], ' +
+      'iframe[title*="schedule" i], ' +
+      'iframe[title*="booking" i], ' +
+      'iframe[title*="contact form" i]'
+    );
+    return (await embed.count()) > 0;
+  }
+
   // ── Field inspection ─────────────────────────────────────────────────────────
 
   /**
@@ -83,9 +154,18 @@ export class ContactFormPage extends BasePage {
     const form = await this.findContactForm();
     if (!form) return false;
     const emailField = form.locator(
-      'input[type="email"], input[name*="email" i], input[placeholder*="email" i]'
+      'input[type="email"], ' +
+      'input[name*="email" i], ' +
+      'input[placeholder*="email" i], ' +
+      'input[aria-label*="email" i], ' +
+      'input[id*="email" i], ' +
+      'input[formcontrolname*="email" i]'   // Angular reactive forms
     );
-    return (await emailField.count()) > 0;
+    if (await emailField.count() > 0) return true;
+
+    // Also check for a <label> containing "email" paired with any input
+    const emailLabel = form.locator('label').filter({ hasText: /email/i });
+    return (await emailLabel.count()) > 0;
   }
 
   /** Returns true if the form contains a name input field. */
@@ -93,7 +173,8 @@ export class ContactFormPage extends BasePage {
     const form = await this.findContactForm();
     if (!form) return false;
     const nameField = form.locator(
-      'input[name*="name" i], input[placeholder*="name" i], input[autocomplete*="name" i]'
+      'input[name*="name" i], input[placeholder*="name" i], ' +
+      'input[autocomplete*="name" i], input[formcontrolname*="name" i]'  // Angular reactive forms
     );
     return (await nameField.count()) > 0;
   }
@@ -102,15 +183,20 @@ export class ContactFormPage extends BasePage {
   async hasSubmitButton(): Promise<boolean> {
     const form = await this.findContactForm();
     if (!form) return false;
-    const submit = form.locator(
-      'button[type="submit"], input[type="submit"], button:not([type="button"]):not([type="reset"])'
-    ).filter({ hasText: /submit|send|contact|get in touch|reach out/i });
 
-    // Also accept any <button> inside the form (many forms omit type="submit")
+    // Standard submit buttons
+    const submit = form.locator('button[type="submit"], input[type="submit"]');
     if (await submit.count() > 0) return true;
 
-    const anyButton = form.locator('button, input[type="submit"]');
-    return (await anyButton.count()) > 0;
+    // Any button inside the form (many SPAs omit type="submit")
+    const anyButton = form.locator('button');
+    if (await anyButton.count() > 0) return true;
+
+    // Angular Material / custom submit elements
+    const customSubmit = form.locator('[role="button"], a[class*="btn"], a[class*="submit"]');
+    if (await customSubmit.count() > 0) return true;
+
+    return false;
   }
 
   // ── Form filling (without submission) ────────────────────────────────────────

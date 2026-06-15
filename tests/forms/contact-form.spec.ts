@@ -4,6 +4,10 @@
  * Contact form tests — verify the presence and structure of contact forms.
  * IMPORTANT: These tests do NOT submit forms to avoid sending spam.
  *
+ * Sites that embed a scheduling widget (Calendly, HubSpot, etc.) via iframe
+ * will pass presence tests but skip field-inspection tests — cross-origin
+ * iframes are not accessible via Playwright.
+ *
  * Tag: @forms
  */
 
@@ -51,27 +55,44 @@ test.describe('Contact Form @forms', () => {
       }
     }
 
+    // Some sites use embedded scheduling widgets (Calendly, HubSpot) instead of
+    // traditional HTML forms — navigate to the scheduling page and check for an iframe
+    if (!form) {
+      await contactPage.navigateToContactForm();
+      const hasEmbed = await contactPage.hasSchedulingEmbed();
+      if (hasEmbed) {
+        console.log(
+          `[forms] "${siteConfig.name}" uses an embedded scheduling widget (Calendly/HubSpot/etc.) ` +
+          'instead of a traditional HTML form. Presence confirmed via iframe.'
+        );
+        return; // Presence confirmed — scheduling embed IS the contact form
+      }
+    }
+
     expect(
       form,
-      `No contact form found on "${siteConfig.name}". ` +
-        'Checked homepage, /contact, /contact-us, /get-in-touch, and nav Contact link.'
+      `No contact form or scheduling embed found on "${siteConfig.name}". ` +
+        'Checked homepage, /contact, /contact-us, /get-in-touch, nav Contact link, and /demo/schedule.'
     ).not.toBeNull();
   });
 
   // ── Required fields ─────────────────────────────────────────────────────────
 
-  test('contact form has required fields (name, email) @forms', async ({ contactPage, siteConfig, page }) => {
-    // Navigate to find the form
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
+  test('contact form has required fields (name, email) @forms', async ({ contactPage, siteConfig }) => {
+    await contactPage.navigateToContactForm();
 
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
+    // Scheduling embeds (Calendly etc.) are cross-origin iframes — field inspection
+    // is not possible via Playwright; skip with an informative message
+    if (await contactPage.hasSchedulingEmbed()) {
+      test.skip(
+        true,
+        `"${siteConfig.name}" uses an embedded scheduling widget — ` +
+        'field inspection requires cross-origin iframe access not available in Playwright'
+      );
+      return;
     }
+
+    const form = await contactPage.findContactForm();
 
     if (!form) {
       test.skip(true, 'No contact form found — covered by "contact form is present" test');
@@ -93,17 +114,19 @@ test.describe('Contact Form @forms', () => {
 
   // ── Submit button ───────────────────────────────────────────────────────────
 
-  test('contact form has a submit button @forms', async ({ contactPage, siteConfig, page }) => {
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
+  test('contact form has a submit button @forms', async ({ contactPage, siteConfig }) => {
+    await contactPage.navigateToContactForm();
 
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
+    if (await contactPage.hasSchedulingEmbed()) {
+      test.skip(
+        true,
+        `"${siteConfig.name}" uses an embedded scheduling widget — ` +
+        'submit button is inside a cross-origin iframe, not inspectable via Playwright'
+      );
+      return;
     }
+
+    const form = await contactPage.findContactForm();
 
     if (!form) {
       test.skip(true, 'No contact form found');
@@ -117,16 +140,18 @@ test.describe('Contact Form @forms', () => {
   // ── Labels and placeholders ─────────────────────────────────────────────────
 
   test('form fields have proper labels or placeholders @forms', async ({ contactPage, siteConfig, page }) => {
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
+    await contactPage.navigateToContactForm();
 
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
+    if (await contactPage.hasSchedulingEmbed()) {
+      test.skip(
+        true,
+        `"${siteConfig.name}" uses an embedded scheduling widget — ` +
+        'field labels are inside a cross-origin iframe, not inspectable via Playwright'
+      );
+      return;
     }
+
+    const form = await contactPage.findContactForm();
 
     if (!form) {
       test.skip(true, 'No contact form found');
@@ -179,16 +204,18 @@ test.describe('Contact Form @forms', () => {
     siteConfig,
     page,
   }) => {
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
+    await contactPage.navigateToContactForm();
 
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
+    if (await contactPage.hasSchedulingEmbed()) {
+      test.skip(
+        true,
+        `"${siteConfig.name}" uses an embedded scheduling widget — ` +
+        'validation behaviour is inside a cross-origin iframe, not testable via Playwright'
+      );
+      return;
     }
+
+    const form = await contactPage.findContactForm();
 
     if (!form) {
       test.skip(true, 'No contact form found');

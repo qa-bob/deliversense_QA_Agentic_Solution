@@ -4,7 +4,7 @@
   "description": "Automates third-party delivery partner reconciliation for restaurants, eliminating manual errors and recovering lost revenue from DoorDash, Uber Eats, and GrubHub disputes.",
   "industry": "Restaurant Technology / B2B SaaS",
   "hasContactForm": true,
-  "expectedNavItems": [],
+  "expectedNavItems": ["About", "Solutions", "Testimonials", "Services"],
   "viewports": ["desktop", "mobile", "tablet"],
   "skipVisual": false,
   "skipForms": false,
