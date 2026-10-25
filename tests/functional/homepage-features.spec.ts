@@ -14,7 +14,7 @@ import { test, expect } from '@fixtures/site.fixture';
 
 test.describe('Homepage Features @functional', () => {
   test.beforeEach(async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
   });
 
   // ── Hero section ─────────────────────────────────────────────────────────────
@@ -58,10 +58,7 @@ test.describe('Homepage Features @functional', () => {
         hasText: /get started|request demo|book a demo|contact us|free trial|get a demo/i,
       });
       const anyCount = await anyCta.count();
-      if (anyCount === 0) {
-        console.warn('[functional] No CTA found on homepage — check live site selectors.');
-        return;
-      }
+      test.skip(anyCount === 0, 'No CTA found on homepage — check live site selectors');
       // At least one CTA exists on the page even if not in main content
       return;
     }
@@ -100,11 +97,8 @@ test.describe('Homepage Features @functional', () => {
     const images = page.locator('img');
     const imgCount = await images.count();
 
-    if (imgCount === 0) {
-      // Some SPAs use CSS backgrounds instead of <img> — not a failure
-      console.warn('[functional] No <img> elements found on homepage.');
-      return;
-    }
+    // Some SPAs use CSS backgrounds instead of <img> — not a failure
+    test.skip(imgCount === 0, 'No <img> elements found on homepage');
 
     const missingAlt: string[] = [];
     for (let i = 0; i < imgCount; i++) {
@@ -131,10 +125,7 @@ test.describe('Homepage Features @functional', () => {
 
     // Soft check — not all homepages have this explicit section
     const exists = await processSection.count() > 0;
-    if (!exists) {
-      console.warn('[functional] No "How It Works" section found — may be on a separate page.');
-      return;
-    }
+    test.skip(!exists, 'No "How It Works" section found — may be on a separate page');
 
     await expect(processSection).toBeVisible({ timeout: 10_000 });
   });
