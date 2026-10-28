@@ -19,7 +19,7 @@ test.describe('CTA Flows @functional', () => {
   // ── Primary CTA presence ──────────────────────────────────────────────────────
 
   test('at least one CTA button is visible on the homepage @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     const ctaPattern = /get started|request demo|book demo|schedule demo|contact us|free trial|get a demo|learn more|see how/i;
 
@@ -44,17 +44,14 @@ test.describe('CTA Flows @functional', () => {
   });
 
   test('all visible CTA buttons are reachable (not disabled) @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     const ctaButtons = page.locator('a, button').filter({
       hasText: /get started|request demo|book demo|schedule demo|contact us|free trial|get a demo/i,
     });
 
     const count = await ctaButtons.count();
-    if (count === 0) {
-      console.warn('[cta-flows] No CTA buttons matched the filter — check selectors against live DOM.');
-      return;
-    }
+    test.skip(count === 0, 'No CTA buttons matched the filter — check selectors against live DOM');
 
     for (let i = 0; i < Math.min(count, 5); i++) {
       const btn = ctaButtons.nth(i);
@@ -70,17 +67,14 @@ test.describe('CTA Flows @functional', () => {
   // ── CTA link targets ──────────────────────────────────────────────────────────
 
   test('primary CTA links have non-empty href attributes @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     const ctaLinks = page.locator('a').filter({
       hasText: /get started|request demo|book demo|schedule demo|contact us|free trial|get a demo/i,
     });
 
     const count = await ctaLinks.count();
-    if (count === 0) {
-      console.warn('[cta-flows] No CTA <a> links found — may be using <button> with JS navigation.');
-      return;
-    }
+    test.skip(count === 0, 'No CTA <a> links found — may be using <button> with JS navigation');
 
     for (let i = 0; i < Math.min(count, 5); i++) {
       const link = ctaLinks.nth(i);
@@ -103,23 +97,17 @@ test.describe('CTA Flows @functional', () => {
   // ── Navigation CTAs ───────────────────────────────────────────────────────────
 
   test('clicking a nav CTA navigates to a new page or section @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     const navCta = page.locator('nav a, header a').filter({
       hasText: /get started|demo|contact|pricing|sign up/i,
     }).first();
 
-    if (await navCta.count() === 0) {
-      console.warn('[cta-flows] No nav-level CTA link found — skipping navigation assertion.');
-      return;
-    }
+    test.skip(await navCta.count() === 0, 'No nav-level CTA link found');
 
     // If the element is not visible (e.g. collapsed mobile nav), skip — opening
     // the hamburger menu is a separate navigation test
-    if (!await navCta.isVisible()) {
-      console.warn('[cta-flows] Nav CTA is not visible (likely inside collapsed mobile menu) — skipping click test.');
-      return;
-    }
+    test.skip(!await navCta.isVisible(), 'Nav CTA is not visible (likely inside collapsed mobile menu)');
 
     const target = await navCta.getAttribute('target');
     const href = await navCta.getAttribute('href');
@@ -144,7 +132,7 @@ test.describe('CTA Flows @functional', () => {
   // ── Contact / demo request form presence ─────────────────────────────────────
 
   test('demo or contact page is reachable from homepage @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     // Try to find a contact/demo link anywhere on the page
     const contactLink = page.locator('a').filter({
@@ -152,10 +140,7 @@ test.describe('CTA Flows @functional', () => {
     }).first();
 
     const found = await contactLink.count() > 0;
-    if (!found) {
-      console.warn('[cta-flows] No explicit contact/demo link found on homepage.');
-      return;
-    }
+    test.skip(!found, 'No explicit contact/demo link found on homepage');
 
     await expect(contactLink).toBeVisible({ timeout: 10_000 });
 
@@ -166,17 +151,14 @@ test.describe('CTA Flows @functional', () => {
   // ── Pricing page (if exists) ──────────────────────────────────────────────────
 
   test('pricing or plans link is reachable @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     const pricingLink = page.locator('a').filter({
       hasText: /pricing|plans|packages/i,
     }).first();
 
     const found = await pricingLink.count() > 0;
-    if (!found) {
-      console.warn('[cta-flows] No pricing link found — pricing may be unlisted or behind a demo wall.');
-      return;
-    }
+    test.skip(!found, 'No pricing link found — pricing may be unlisted or behind a demo wall');
 
     await expect(pricingLink).toBeVisible({ timeout: 10_000 });
 
@@ -187,7 +169,7 @@ test.describe('CTA Flows @functional', () => {
   // ── External links open properly ─────────────────────────────────────────────
 
   test('external links have target="_blank" and rel="noopener" @functional', async ({ page, siteConfig }) => {
-    await page.goto(siteConfig.url, { waitUntil: 'networkidle' });
+    await page.goto(siteConfig.url, { waitUntil: 'load' });
 
     const siteOrigin = new URL(siteConfig.url).origin;
     const externalLinks = page.locator('a[href]').filter({
@@ -195,10 +177,7 @@ test.describe('CTA Flows @functional', () => {
     });
 
     const count = await externalLinks.count();
-    if (count === 0) {
-      console.warn('[cta-flows] No external links found on homepage.');
-      return;
-    }
+    test.skip(count === 0, 'No external links found on homepage');
 
     const missingAttributes: string[] = [];
 

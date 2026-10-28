@@ -65,13 +65,13 @@ export class ContactFormPage extends BasePage {
     await this.navigate();
     if (await hasFormWithEmail()) return;
 
-    // Use networkidle so the Angular SPA has time to render form fields.
+    // Wait for the load event so the Angular SPA has time to render form fields.
     // /demo/schedule first: known landing page for the Calendly embed on this site.
     const candidatePaths = ['/demo/schedule', '/demo', '/contact', '/contact-us', '/get-in-touch', '/reach-out', '/request-demo'];
     for (const p of candidatePaths) {
       try {
         await this.page.goto(this.url.replace(/\/$/, '') + p, {
-          waitUntil: 'networkidle',
+          waitUntil: 'load',
           timeout: 20_000,
         });
         if (await hasContactMechanism()) return;
@@ -91,7 +91,7 @@ export class ContactFormPage extends BasePage {
       const href = await navLink.getAttribute('href');
       if (href) {
         const resolved = new URL(href, this.url).toString();
-        await this.page.goto(resolved, { waitUntil: 'networkidle', timeout: 20_000 });
+        await this.page.goto(resolved, { waitUntil: 'load', timeout: 20_000 });
       }
     }
   }
@@ -136,7 +136,7 @@ export class ContactFormPage extends BasePage {
         (await el.getAttribute('id')) ??
         (await el.getAttribute('placeholder')) ??
         `field-${i}`;
-      const type = (await el.getAttribute('type')) ?? (await el.evaluate<string>((node) => node.tagName.toLowerCase()));
+      const type = (await el.getAttribute('type')) ?? (await el.evaluate((node) => node.tagName.toLowerCase()));
       const required =
         (await el.getAttribute('required')) !== null ||
         (await el.getAttribute('aria-required')) === 'true';
